@@ -47,7 +47,7 @@ class WorkLogTest(unittest.TestCase):
 
     @patch("builtins.input", return_value="a")
     def test_bad_search_entries(self, mock_input):
-        with self.asseerRaises(ValueError):
+        with self.assertRaises(ValueError):
             int("a")
 
 
