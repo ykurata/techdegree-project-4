@@ -1,167 +1,96 @@
 import datetime
 import unittest
-import mock
-from mock import patch
-from peewee import *
 
 import work_log_db
 from work_log_db import Entry
 
 
-class WorkLogTest(unittest.TestCase):
-    def setUp(self):
-        self.name = "Yasuko"
-        self.title = "project4"
-        self.time = 60
-        self.note = "Test Notes"
+class WorkLogTests(unittest.TestCase):
+    def test_create_new_entry(self):
+        from work_log_db import create_new_entry
+        test_entry = create_new_entry("test name", "test title", 1, "test notes")
+        self.assertEqual(test_entry.name, "test name")
+        test_entry.delete_instance()
 
 
-    def test_add_new_entry(self):
-        Entry.create(name=self.name,
-                    title=self.title,
-                    time=self.time,
-                    note=self.note)
-        entry = Entry.select().order_by(Entry.id.desc())
-        Entry.delete_by_id(entry)
+    def test_valid_menu_input(self):
+        from work_log_db import valid_menu_input
+        self.assertTrue(valid_menu_input("a"))
+        self.assertTrue(valid_menu_input("s"))
+        self.assertTrue(valid_menu_input("v"))
+        self.assertFalse(valid_menu_input("w"))
+        self.assertFalse(valid_menu_input(""))
 
 
-    @patch("builtins.input", side_effect=["q"])
-    def test_menu_loop(self, mock_input):
-        work_log_db.menu_loop()
+    def test_valid_search_input(self):
+        from work_log_db import valid_search_input
+        self.assertTrue(valid_search_input("a"))
+        self.assertTrue(valid_search_input("b"))
+        self.assertTrue(valid_search_input("c"))
+        self.assertTrue(valid_search_input("d"))
+        self.assertTrue(valid_search_input("e"))
+        self.assertFalse(valid_search_input("f"))
+        self.assertFalse(valid_search_input(""))
 
 
-    @patch("builtins.input", return_value=["yasuko", "project4", 60, "test notes"])
-    def test_add_entry(self, mock_input):
-        work_log_db.add_entry()
+    def test_valid_name_input(self):
+        from work_log_db import valid_name_input
+        self.assertTrue(valid_name_input("Test name"))
+        self.assertFalse(valid_name_input(""))
 
 
-    @patch("builtins.input", return_value="s")
-    def test_menu_input(self, mock_input):
-        work_log_db.search_entries()
+    def test_valid_title_input(self):
+        from work_log_db import valid_title_input
+        self.assertTrue(valid_title_input("Test title"))
+        self.assertFalse(valid_title_input(""))
 
 
-    @patch("builtins.input", return_value="v")
-    def test_view_entries(self, mock_input):
-        work_log_db.view_entries()
+    def test_valid_time_input(self):
+        from work_log_db import valid_time_input
+        self.assertTrue(valid_time_input("5"))
+        self.assertFalse(valid_time_input("a"))
 
 
-    @patch("builtins.input", return_value="a")
-    def test_bad_search_entries(self, mock_input):
-        with self.assertRaises(ValueError):
-            int("a")
+    def test_valid_note_input(self):
+        from work_log_db import valid_note_input
+        self.assertTrue(valid_note_input("test note"))
+        self.assertEqual(valid_note_input(""), None)
 
 
-    def test_show_names(self):
+    def test_valid_date_input(self):
+        from work_log_db import valid_date_input
+        self.assertTrue(valid_date_input("2018-04-11"))
+        self.assertFalse(valid_date_input("123"))
+
+
+    def test_valid_date_range_input(self):
+        from work_log_db import valid_date_range_input
+        self.assertTrue(valid_date_range_input("2018-04-11", "2018-04-20"))
+        self.assertFalse(valid_date_range_input("123", "abc"))
+
+
+    def test_valid_find_task_note(self):
+        from work_log_db import valid_find_task_note
+        self.assertTrue(valid_find_task_note("test note"))
+        self.assertFalse(valid_find_task_note(""))
+
+
+    def test_show_entry(self):
+        from work_log_db import create_new_entry
+        test_entry = create_new_entry("test name", "test title", 1, "test notes")
+        from work_log_db import show_entry
+        show_entry(test_entry)
+        test_entry.delete_instance()
+
+
+    def test_valid_next_action_input(self):
+        from work_log_db import valid_next_action_input
+        self.assertTrue(valid_next_action_input("d"))
+        self.assertFalse(valid_next_action_input("1"))
+
+
+    def test_show_name(self):
         work_log_db.show_names()
-
-
-    def test_next_action(self):
-        work_log_db.next_action(entry)
-
-
-    @patch("builtins.input", return_value="q")
-    def test_next_action_input(self, mock_input):
-        work_log_db.menu_loop()
-
-
-    @patch("builtins.input", return_value="y")
-    def test_delete_entry(self, mock_input):
-        work_log_db.delete_entry(entry)
-
-
-class FindNameTest(unittest.TestCase):
-    def find_name(self):
-        show_name()
-        name_choice = input("Please enter the name you want to search. ")
-        entries = Entry.select().where(Entry.name.contains(name_choice))
-        for entry in entries:
-            work_log_db.show_entry(entry)
-            next_action(entry)
-
-    @patch("builtins.input", return_value="Yasuko")
-    def test_find_name(self, mock_input):
-        work_log_db.find_name()
-
-
-class FindDateTest(unittest.TestCase):
-    def find_date(self):
-        date = input("\nEnter the date YYYY-MM-DD format. ")
-        try:
-            date = datetime.strptime(date, '%Y-%m-%d')
-        except ValueError:
-            print("{} doesn't seem to be a valid date".format(date))
-            find_date()
-        else:
-            date = date.strftime('%Y-%m-%d')
-            entries = Entry.select().order_by(Entry.timestamp.desc())
-            entries = entries.where(Entry.timestamp.contains(date))
-            for entry in entries:
-                show_entry(entry)
-                next_action(entry)
-
-    @patch("builtins.input", return_value = "2018-04-07")
-    def test_find_date(self, mock_input):
-        work_log_db.find_date()
-
-
-class FindByRangeTest(unittest.TestCase):
-    def find_by_range(self):
-        first_date = input("\nEnter the first date in YYYY-MM-DD format. ")
-        second_date = input("Enter the second date in YYYY-MM-DD format. ")
-        try:
-            first_date = datetime.strptime(first_date, '%Y-%m-%d')
-            second_date = datetime.strptime(second_date, '%Y-%m-%d')
-        except ValueError:
-            print("{} doesn't seem to be a valid date".format(first_date))
-            print("{} doesn't seem to be a valid date".format(second_date))
-            find_by_range()
-        else:
-            first_date = first_date.strftime('%Y-%m-%d')
-            second_date = second_date.strftime('%Y-%m-%d')
-            entries = Entry.select().order_by(Entry.timestamp.desc())
-            entries = entries.where(first_date <= Entry.timestamp <= second_date)
-            for entry in entries:
-                show_entry(entry)
-                next_action(entry)
-
-    @patch("builtins.input", side_effect=["2018-04-06", "2018-04-07"])
-    def test_find_by_range(self, mock_input):
-        work_log_db.find_by_range()
-
-
-class FindTimeTest(unittest.TestCase):
-    def find_time(self):
-        time_spent = input("Enter the time you spent(minutes): ")
-        try:
-            time_spent = int(time_spent)
-        except ValueError:
-            print("Please enter the number of time you spent.")
-        else:
-            entries = Entry.select().order_by(Entry.timestamp.desc())
-            entries = entries.where(Entry.time==time_spent)
-            for entry in entries:
-                show_entry(entry)
-                next_action(entry)
-
-    @patch("builtins.input", return_value = 60)
-    def test_find_time(self, mock_input):
-        work_log_db.find_time()
-
-
-class FindTaskNoteTest(unittest.TestCase):
-    def find_task_note(self):
-        search = input("Enter task name or notes: ")
-        entries = Entry.select().order_by(Entry.timestamp.desc())
-        entries = entries.where(
-                (Entry.title.contains(search)) | (Entry.note.contains(search)))
-        for entry in entries:
-            show_entry(entry)
-            next_action(entry)
-
-    @patch("builtins.input", side_effect = ["project4", "Test Notes"])
-    def test_find_task_note(self, mock_input):
-        work_log_db.find_task_note()
-
 
 
 if __name__ == '__main__':

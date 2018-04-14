@@ -40,66 +40,120 @@ def menu_loop():
         for key, value in menu.items():
             print('{}) {}'.format(key, value.__doc__))
         choice = input("Please select your next action. ").lower().strip()
-
-        if choice in menu:
+        if choice == "q":
+            break
+        if valid_menu_input(choice):
             clear_screen()
             menu[choice]()
 
 
+def valid_menu_input(choice):
+    """Check if the choice is in the menu."""
+    if choice in menu.keys():
+        return True
+    else:
+        print("Please enter again!")
+        return False
+
+
 def add_entry():
-    """Add an entry."""
-    name = input("Enter your name: ")
-    title = input("Enter the task name: ")
-    time = input("Enter the number of time you spent(minutes): ")
+    """Create a new entry."""
+    while True:
+        name = input("Enter your name: ").strip()
+        if valid_name_input(name):
+            break
+    while True:
+        title = input("Enter the task name: ").strip()
+        if valid_title_input(title):
+            break
+    while True:
+        time = input("Enter the number of time you spent(minutes): ").strip()
+        if valid_time_input(time):
+            break
     print("Enter any additional notes. Press ctrl+d when finished.")
     note = sys.stdin.read().strip()
+    valid_note_input(note)
+    create_new_entry(name, title, time, note)
 
-    if input("Save entry? Enter y or n: ").lower() != "n":
-        Entry.create(name=name, title=title, time=time, note=note)
-        print("The entry saved successfully.")
+
+def create_new_entry(name, title, time, note):
+    """Create a new entry"""
+    print("The entry saved successfully.")
+    return Entry.create(name=name, title=title, time=time, note=note)
+
+
+def valid_name_input(name):
+    """Check if the employee name is valid."""
+    if len(name) != 0:
+        clear_screen()
+        return True
+    else:
+        clear_screen()
+        print("Please enter a name again!")
+        return False
+
+
+def valid_title_input(title):
+    """Check if the title is valid."""
+    if len(title) != 0:
+        clear_screen()
+        return True
+    else:
+        clear_screen()
+        print("Please enter a title again!")
+        return False
+
+
+def valid_time_input(time):
+    """Check if the time is valid."""
+    if time.isdigit():
+        time = int(time)
+        clear_screen()
+        return True
+    else:
+        clear_screen()
+        print("Please enter time spent again!")
+        return False
+
+
+def valid_note_input(note):
+    """Checks if task note is valid."""
+    if len(note) != 0:
+        clear_screen()
+        return True
+    elif len(note) == 0:
+        return None
 
 
 def search_entries():
     """Search previous entries."""
-    search_options()
-    search_choice = input("""
-Enter the number associated with the search you want: """)
-    clear_screen()
-    try:
-        search_choice = int(search_choice)
-    except ValueError:
-        print("{} is not a valid number.".format(search_choice) + "\n")
-        search_entries()
-    else:
-        if search_choice == 1:
-            find_name()
-        elif search_choice == 2:
+    choice = None
+
+    while choice != "q":
+        clear_screen()
+        print("Enter 'q' to return menu\n")
+        for key, value in search_option.items():
+            print('{}) {}'.format(key, value.__doc__))
+        choice = input("""
+Pease select your search option: """)
+        if choice == "q":
+            menu_loop()
+        if valid_search_input(choice):
             clear_screen()
-            print("e) Exact date search")
-            print("r) Date range search")
-            choice = input("\nEnter 'e' or 'r': ").lower().strip()
-            if choice == "e":
-                find_date()
-            elif choice == "r":
-                find_by_range()
-        elif search_choice == 3:
-            find_time()
-        elif search_choice == 4:
-            find_task_note()
+            search_option[choice]()
 
 
-def search_options():
-    print("Please choose one of the following search options.")
-    print("""
-    1) Find by employee's name
-    2) Find by date
-    3) Find by time spent
-    4) Find by task name or notes
-    """)
+def valid_search_input(choice):
+    """Check if the choice is in the search options."""
+    if choice in search_option.keys():
+        return True
+    else:
+        print("{} is not a valid number".format(choice))
+        return False
 
 
 def view_entries():
-    """view previous entries."""
+    """View previous entries."""
     entries = Entry.select().order_by(Entry.timestamp.desc())
 
     for entry in entries:
@@ -110,7 +164,7 @@ def view_entries():
 
 
 def show_names():
-    """show enployee's name"""
+    """Show enployee's name."""
     entries = Entry.select().order_by(Entry.timestamp.desc())
     clear_screen()
     print("-----Employee's name-----")
@@ -119,83 +173,88 @@ def show_names():
 
 
 def find_name():
-    """
-    allow user to input employee's name,
-    and show the employee's entry.
-    """
+    """Find by employee's name"""
     show_names()
-    name_choice = input("\nPlease enter the name you want to search. ")
-    entries = Entry.select().where(Entry.name.contains(name_choice))
+    while True:
+        name = input("\nPlease enter the name you want to search. ")
+        if valid_name_input(name):
+            break
+    entries = Entry.select().where(Entry.name.contains(name))
     for entry in entries:
         show_entry(entry)
         next_action(entry)
 
 
-def find_date():
-    """allow user to input the date and show the entry matched with the date"""
-    date = input("\nEnter the date YYYY-MM-DD format. ")
+def find_exact_date():
+    """Find by exact date."""
+    while True:
+        date = input("\nEnter the date YYYY-MM-DD format. ")
+        if valid_date_input(date):
+            break
+    entries = Entry.select().order_by(Entry.timestamp.desc())
+    entries = entries.where(Entry.timestamp.contains(date))
+    for entry in entries:
+        show_entry(entry)
+        next_action(entry)
+
+
+def valid_date_input(date):
+    """Check if the date is valid."""
     try:
         date = datetime.strptime(date, '%Y-%m-%d')
+        return date
     except ValueError:
+        clear_screen()
         print("{} doesn't seem to be a valid date".format(date))
-        find_date()
-    else:
-        date = date.strftime('%Y-%m-%d')
-        entries = Entry.select().order_by(Entry.timestamp.desc())
-        entries = entries.where(Entry.timestamp.contains(date))
-        for entry in entries:
-            show_entry(entry)
-            next_action(entry)
+        return False
 
 
 def find_by_range():
-    """
-    allow user to input date range,
-    and show the entry matched with the date range.
-    """
-    first_date = input("\nEnter the first date in YYYY-MM-DD format. ")
-    second_date = input("Enter the second date in YYYY-MM-DD format. ")
+    """Find by date range."""
+    while True:
+        first_date = input("\nEnter the first date in YYYY-MM-DD format. ")
+        second_date = input("Enter the second date in YYYY-MM-DD format. ")
+        if valid_date_range_input(first_date, second_date):
+            break
+    entries = Entry.select().order_by(Entry.timestamp.desc())
+    entries = entries.where(first_date <= Entry.timestamp <= second_date)
+    for entry in entries:
+        show_entry(entry)
+        next_action(entry)
+
+
+def valid_date_range_input(first_date, second_date):
+    """Check if the date range is valid."""
     try:
         first_date = datetime.strptime(first_date, '%Y-%m-%d')
         second_date = datetime.strptime(second_date, '%Y-%m-%d')
+        return first_date, second_date
     except ValueError:
+        clear_screen()
         print("{} doesn't seem to be a valid date".format(first_date))
         print("{} doesn't seem to be a valid date".format(second_date))
-        find_by_range()
-    else:
-        first_date = first_date.strftime('%Y-%m-%d')
-        second_date = second_date.strftime('%Y-%m-%d')
-        entries = Entry.select().order_by(Entry.timestamp.desc())
-        entries = entries.where(first_date <= Entry.timestamp <= second_date)
-        for entry in entries:
-            show_entry(entry)
-            next_action(entry)
+        return False
 
 
 def find_time():
-    """
-    allow user to input the time,
-    and show the entry matched with the time.
-    """
-    time_spent = input("\nEnter the time you spent(minutes): ")
-    try:
-        time_spent = int(time_spent)
-    except ValueError:
-        print("Please enter the number of time you spent.")
-    else:
-        entries = Entry.select().order_by(Entry.timestamp.desc())
-        entries = entries.where(Entry.time==time_spent)
-        for entry in entries:
-            show_entry(entry)
-            next_action(entry)
+    """Find by time spent."""
+    while True:
+        time_spent = input("\nEnter the time you spent(minutes): ")
+        if valid_time_input(time_spent):
+            break
+    entries = Entry.select().order_by(Entry.timestamp.desc())
+    entries = entries.where(Entry.time==time_spent)
+    for entry in entries:
+        show_entry(entry)
+        next_action(entry)
 
 
 def find_task_note():
-    """
-    allow user to input the taks name or note,
-    and show the entry matched with the task name or note.
-    """
-    search = input("Enter task name or notes: ")
+    """Find by task name or note."""
+    while True:
+        search = input("Enter task name or notes: ")
+        if valid_find_task_note(search):
+            break
     entries = Entry.select().order_by(Entry.timestamp.desc())
     entries = entries.where(
             (Entry.title.contains(search)) | (Entry.note.contains(search)))
@@ -204,8 +263,18 @@ def find_task_note():
         next_action(entry)
 
 
+def valid_find_task_note(search):
+    """Check if the search input of task name or note is valid."""
+    if len(search) != 0:
+        return True
+    elif len(search) == 0:
+        clear_screen()
+        print("Please enter task name or note")
+        return False
+
+
 def show_entry(entry):
-    """show entry with timestamp."""
+    """Show entry with timestamp."""
     clear_screen()
     timestamp = entry.timestamp.strftime('%Y-%m-%d, %I:%M%p')
     print(timestamp)
@@ -220,24 +289,36 @@ Note:
 
 
 def next_action(entry):
-    """ask user to input next action."""
+    """Ask user to input next action."""
     print("""
 n) next entry
 d) delete entry
 q) return to main menu""")
-    action = input("\nPlease select your next action: " + "\n").lower().strip()
+    while True:
+        action = input("\nPlease select your next action: " + "\n").lower().strip()
+        if valid_next_action_input(action):
+            break
     if action == 'd':
-        delete_entry(entry)
-        print("Entry deleted.")
+        return delete_entry(entry)
     elif action == "q":
         menu_loop()
         sys.exit()
 
 
+def valid_next_action_input(action):
+    """Check if the action is in search options"""
+    next_action = ["n", "d", "q"]
+    if action in next_action:
+        return True
+    else:
+        print("{} is not a valid choice".format(action))
+        return False
+
+
 def delete_entry(entry):
     """Delete an entry."""
-    delete = input("Do you want to delete this entry? Enter y or n: ").lower()
-    if delete == "y":
+    if input("""
+Do you want to delete this entry? Enter y or n: """).lower() == "y":
         entry.delete_instance()
 
 
@@ -245,6 +326,15 @@ menu = OrderedDict([
     ('a', add_entry),
     ('s', search_entries),
     ('v', view_entries),
+])
+
+
+search_option = OrderedDict([
+    ('a', find_name),
+    ('b', find_exact_date),
+    ('c', find_by_range),
+    ('d', find_time),
+    ('e', find_task_note),
 ])
 
 
